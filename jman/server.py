@@ -7,9 +7,21 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from .manager import Manager
 
 
-class Server:
-    def __init__(self, max_running):
+class Server(ThreadingHTTPServer):
+    def __init__(self, max_running, bind_addr):
+        self.bind_addr            = bind_addr
+        os.environ['JMAN_SERVER'] = 'http://' + bind_addr
+        host, port                = bind_addr.split(':')
+        super(Server, self).__init__((host, int(port)), JManHTTPRequestHandler)
+
         self.job_manager = Manager(max_running=max_running)
+
+    def serve_forever(self, *args,
+                      **kwargs):  # pylint: disable=signature-differs
+        print('Starting Server on %s, max workers = %u' %
+              (self.bind_addr, self.job_manager.max_running))
+
+        super(Server, self).serve_forever(*args, **kwargs)
 
     def get_jobs(self):
         jobs = {}
@@ -94,8 +106,6 @@ class Server:
 
 
 class JManHTTPRequestHandler(BaseHTTPRequestHandler):
-    job_server = None
-
     def do_GET(self):
         if self.path == '/jobs':
             self._do_GET_jobs()
@@ -131,41 +141,30 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(content.encode())
 
     def _do_GET_jobs(self):
-        self._send_json(200, self.job_server.get_jobs())
+        self._send_json(200, self.server.get_jobs())
 
     def _do_GET_job_by_name(self):
         name = self.path[13:]
-        self._send_json(200, self.job_server.get_job_by_name(name))
+        self._send_json(200, self.server.get_job_by_name(name))
 
     def _do_GET_job_by_uuid(self):
         hex_str = self.path[13:]
-        self._send_json(200, self.job_server.get_job_by_uuid(hex_str))
+        self._send_json(200, self.server.get_job_by_uuid(hex_str))
 
     def _do_GET_join_by_name(self):
         name = self.path[14:]
-        self._send_json(200, self.job_server.join_by_name(name))
+        self._send_json(200, self.server.join_by_name(name))
 
     def _do_GET_join_by_uuid(self):
         hex_str = self.path[14:]
-        self._send_json(200, self.job_server.join_by_uuid(hex_str))
+        self._send_json(200, self.server.join_by_uuid(hex_str))
 
     def _do_PUT_spawn_mod_func(self):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
-        self._send_json(200, self.job_server.spawn_mod_func(cmd))
+        self._send_json(200, self.server.spawn_mod_func(cmd))
 
     def _do_PUT_spawn_cmd(self):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
-        self._send_json(200, self.job_server.spawn_cmd(cmd))
-
-
-def serve_forever(bind_addr, max_running):
-    JManHTTPRequestHandler.job_server = Server(max_running)
-
-    os.environ['JMAN_SERVER'] = 'http://' + bind_addr
-    host, port = bind_addr.split(':')
-    bind_addr  = (host, int(port))
-    httpd      = ThreadingHTTPServer(bind_addr, JManHTTPRequestHandler)
-    print('Starting server on %s, max workers = %u' % (bind_addr, max_running))
-    httpd.serve_forever()
+        self._send_json(200, self.server.spawn_cmd(cmd))
