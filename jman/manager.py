@@ -37,6 +37,9 @@ class Manager:
     def spawn_mod_func(self, *args, **kwargs):
         return self._spawn(Job.from_mod_func, *args, **kwargs)
 
+    def spawn_cmd(self, *args, **kwargs):
+        return self._spawn(Job.from_cmd, *args, **kwargs)
+
     def notify_complete(self, j):
         with self.jobs_lock:
             self.running_jobs.remove(j)

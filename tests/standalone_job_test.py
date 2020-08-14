@@ -17,10 +17,9 @@ def notify_complete(j):
 
 
 if __name__ == '__main__':
-    j = Job('TEST-TASK',
-            cmd=['/usr/bin/env', 'python3',
-                 os.path.join(DIR, 'standalone_target.py'),
-                 '-c', '10'],
-            notify_meta=notify_meta, notify_complete=notify_complete)
+    j = Job.from_cmd(['/usr/bin/env', 'python3',
+                      os.path.join(DIR, 'standalone_target.py'),
+                      '-c', '10'], 'TEST-TASK',
+                     notify_meta=notify_meta, notify_complete=notify_complete)
     j.spawn()
     j.join()

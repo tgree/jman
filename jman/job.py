@@ -38,6 +38,13 @@ class Job:
         assert 'cmd' not in kwargs
         return Job(name, module=module, function=function, **kwargs)
 
+    @staticmethod
+    def from_cmd(cmd, name=None, **kwargs):
+        assert 'module' not in kwargs
+        assert 'function' not in kwargs
+        assert 'cwd' not in kwargs
+        return Job(name, cmd=cmd, **kwargs)
+
     def spawn(self, *args, **kwargs):
         self.status = Job.STATUS_RUNNING
         self.thread = threading.Thread(target=self._workloop, daemon=True,
