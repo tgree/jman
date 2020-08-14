@@ -11,35 +11,35 @@ import jman
 
 
 class CurrentJob:
-    def __init__(self, u, wfd):
+    def __init__(self, u, wf):
         self.uuid      = uuid.UUID(u)
-        self.wfd       = wfd
+        self.wf        = wf
         self.meta      = None
         self.error_log = None
 
     def set_meta(self, meta):
         self.meta = meta
-        self.wfd.write('META: %s\n' % json.dumps(meta))
-        self.wfd.flush()
+        self.wf.write('META: %s\n' % json.dumps(meta))
+        self.wf.flush()
 
     def set_error_log(self, log):
         self.error_log = log
-        self.wfd.write('ERROR_LOG: %s\n' % json.dumps(log))
-        self.wfd.flush()
+        self.wf.write('ERROR_LOG: %s\n' % json.dumps(log))
+        self.wf.flush()
 
 
 def main(args):
     # Manage file descriptors.
-    rfd = os.fdopen(args.rfd, 'r')
-    wfd = os.fdopen(args.wfd, 'w')
+    rf = os.fdopen(args.rfd, 'r')
+    wf = os.fdopen(args.wfd, 'w')
 
     # Receive our json command from the master.
-    j = rfd.readline()
+    j = rf.readline()
     j = json.loads(j)
-    rfd.close()
+    rf.close()
 
     # Populate the current_job global.
-    jman.current_job = CurrentJob(j['uuid'], wfd)
+    jman.current_job = CurrentJob(j['uuid'], wf)
 
     # Import that target module and execute the target function.
     if args.cwd:
