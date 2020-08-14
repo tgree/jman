@@ -83,6 +83,14 @@ class Server:
                                                    cwd=cwd)
         return self._job_to_json(j)
 
+    def spawn_cmd(self, cmd):
+        cli    = cmd['cmd']
+        name   = cmd['name']
+        args   = tuple(cmd['args'])
+        kwargs = tuple(cmd['kwargs'])
+        j      = self.job_manager.spawn_cmd(cli, name, args=args, kwargs=kwargs)
+        return self._job_to_json(j)
+
 
 class JManHTTPRequestHandler(BaseHTTPRequestHandler):
     job_server = None
@@ -104,6 +112,8 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_PUT(self):
         if self.path == '/spawn_mod_func':
             self._do_PUT_spawn_mod_func()
+        elif self.path == '/spawn_cmd':
+            self._do_PUT_spawn_cmd()
         else:
             self.send_error(404)
 
@@ -142,6 +152,11 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
         self._send_json(200, self.job_server.spawn_mod_func(cmd))
+
+    def _do_PUT_spawn_cmd(self):
+        length = int(self.headers['Content-Length'])
+        cmd    = json.loads(self.rfile.read(length))
+        self._send_json(200, self.job_server.spawn_cmd(cmd))
 
 
 def serve_forever(bind_addr, max_running):

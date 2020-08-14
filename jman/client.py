@@ -54,3 +54,11 @@ class Client:
                'cwd'      : cwd,
                }
         return self._put('/spawn_mod_func', cmd)
+
+    def spawn_cmd(self, cmd, name, args=(), kwargs=None):
+        cmd = {'cmd'    : cmd,
+               'name'   : name,
+               'args'   : args,
+               'kwargs' : kwargs or {},
+               }
+        return self._put('/spawn_cmd', cmd)
