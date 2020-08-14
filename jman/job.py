@@ -60,7 +60,7 @@ class Job:
         env['JMAN_WFD']      = str(child_wfd)
         if self.cwd:
             env['JMAN_CWD'] = self.cwd
-        cmd = ['/usr/bin/env', 'python3', '-u',
+        cmd = ['/usr/bin/env', 'python3',
                '-m', 'jman.current_job',
                ]
         self.proc = reap.Popen(cmd, pass_fds=(child_rfd, child_wfd), env=env)
