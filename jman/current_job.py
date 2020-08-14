@@ -6,10 +6,9 @@ import os
 from .client import Client
 
 
-CURRENT_JOB = None
-
-
 class CurrentJob:
+    CURRENT_JOB = None
+
     def __init__(self, j, wf, url):
         self.uuid      = uuid.UUID(j['uuid'])
         self.args      = j['args']
@@ -45,15 +44,14 @@ def _load_current_job(rfd, wfd, url):
 
 
 def get_current_job():
-    global CURRENT_JOB
-    if CURRENT_JOB is not None:
-        return CURRENT_JOB
+    if CurrentJob.CURRENT_JOB is not None:
+        return CurrentJob.CURRENT_JOB
     if 'JMAN_RFD' not in os.environ:
         return None
     if 'JMAN_WFD' not in os.environ:
         return None
     url = os.environ.get('JMAN_SERVER')
-    CURRENT_JOB = _load_current_job(int(os.environ['JMAN_RFD']),
-                                    int(os.environ['JMAN_WFD']),
-                                    url)
-    return CURRENT_JOB
+    CurrentJob.CURRENT_JOB = _load_current_job(int(os.environ['JMAN_RFD']),
+                                               int(os.environ['JMAN_WFD']),
+                                               url)
+    return CurrentJob.CURRENT_JOB
