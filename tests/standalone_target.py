@@ -7,6 +7,8 @@ from jman import current_job
 
 
 def main(n):
+    if current_job.client:
+        print(current_job.client.get_jobs())
     for i in range(n):
         current_job.set_meta({'count' : i})
         time.sleep(1)

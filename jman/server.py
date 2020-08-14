@@ -1,6 +1,7 @@
 # Copyright (c) 2020 by Terry Greeniaus.
 import json
 import uuid
+import os
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 from .manager import Manager
@@ -162,6 +163,7 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
 def serve_forever(bind_addr, max_running):
     JManHTTPRequestHandler.job_server = Server(max_running)
 
+    os.environ['JMAN_SERVER'] = 'http://' + bind_addr
     host, port = bind_addr.split(':')
     bind_addr  = (host, int(port))
     httpd      = ThreadingHTTPServer(bind_addr, JManHTTPRequestHandler)

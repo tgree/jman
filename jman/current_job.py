@@ -3,16 +3,19 @@ import json
 import uuid
 import os
 
+from .client import Client
+
 
 CURRENT_JOB = None
 
 
 class CurrentJob:
-    def __init__(self, j, wf):
+    def __init__(self, j, wf, url):
         self.uuid      = uuid.UUID(j['uuid'])
         self.args      = j['args']
         self.kwargs    = j['kwargs']
         self.wf        = wf
+        self.client    = Client(url) if url else None
         self.meta      = None
         self.error_log = None
 
@@ -27,7 +30,7 @@ class CurrentJob:
         self.wf.flush()
 
 
-def _load_current_job(rfd, wfd):
+def _load_current_job(rfd, wfd, url):
     # Manage file descriptors.
     rf = os.fdopen(rfd, 'r')
     wf = os.fdopen(wfd, 'w')
@@ -38,7 +41,7 @@ def _load_current_job(rfd, wfd):
     rf.close()
 
     # Return a CurrentJob object.
-    return CurrentJob(j, wf)
+    return CurrentJob(j, wf, url)
 
 
 def get_current_job():
@@ -49,6 +52,8 @@ def get_current_job():
         return None
     if 'JMAN_WFD' not in os.environ:
         return None
+    url = os.environ.get('JMAN_SERVER')
     CURRENT_JOB = _load_current_job(int(os.environ['JMAN_RFD']),
-                                    int(os.environ['JMAN_WFD']))
+                                    int(os.environ['JMAN_WFD']),
+                                    url)
     return CURRENT_JOB
