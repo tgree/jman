@@ -12,14 +12,17 @@ class Job:
     STATUS_RUNNING  = 1
     STATUS_COMPLETE = 2
 
-    def __init__(self, module, function, name, args=(), kwargs=None, cwd=None,
-                 notify_meta=None, notify_complete=None, manager_notify=None):
+    def __init__(self, module, function, name, args=(), kwargs=None, cmd=None,
+                 cwd=None, notify_meta=None, notify_complete=None,
+                 manager_notify=None):
         self.cwd             = cwd
         self.module          = module
         self.function        = function
         self.name            = name
         self.args            = args
         self.kwargs          = kwargs or {}
+        self.cmd             = cmd or ['/usr/bin/env', 'python3',
+                                       '-m', 'jman.mod_func_loader']
         self.notify_meta     = notify_meta
         self.notify_complete = [x for x in (manager_notify, notify_complete)
                                 if x is not None]
@@ -54,16 +57,16 @@ class Job:
         rfd                  = os.fdopen(rfd, 'r')
         wfd                  = os.fdopen(wfd, 'w')
         env                  = os.environ.copy()
-        env['JMAN_MODULE']   = self.module
-        env['JMAN_FUNCTION'] = self.function
-        env['JMAN_RFD']      = str(child_rfd)
-        env['JMAN_WFD']      = str(child_wfd)
+        if self.module:
+            env['JMAN_MODULE'] = self.module
+        if self.function:
+            env['JMAN_FUNCTION'] = self.function
         if self.cwd:
             env['JMAN_CWD'] = self.cwd
-        cmd = ['/usr/bin/env', 'python3',
-               '-m', 'jman.current_job',
-               ]
-        self.proc = reap.Popen(cmd, pass_fds=(child_rfd, child_wfd), env=env)
+        env['JMAN_RFD']      = str(child_rfd)
+        env['JMAN_WFD']      = str(child_wfd)
+        self.proc = reap.Popen(self.cmd, pass_fds=(child_rfd, child_wfd),
+                               env=env)
         os.close(child_rfd)
         os.close(child_wfd)
 
