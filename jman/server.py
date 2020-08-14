@@ -78,8 +78,9 @@ class Server:
         args     = tuple(cmd['args'])
         kwargs   = cmd['kwargs']
         cwd      = cmd.get('cwd')
-        j        = self.job_manager.spawn(module, function, name, args=args,
-                                          kwargs=kwargs, cwd=cwd)
+        j        = self.job_manager.spawn_mod_func(module, function, name,
+                                                   args=args, kwargs=kwargs,
+                                                   cwd=cwd)
         return self._job_to_json(j)
 
 

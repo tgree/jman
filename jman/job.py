@@ -12,17 +12,17 @@ class Job:
     STATUS_RUNNING  = 1
     STATUS_COMPLETE = 2
 
-    def __init__(self, module, function, name, args=(), kwargs=None, cmd=None,
-                 cwd=None, notify_meta=None, notify_complete=None,
+    def __init__(self, name, module=None, function=None, args=(), kwargs=None,
+                 cmd=None, cwd=None, notify_meta=None, notify_complete=None,
                  manager_notify=None):
-        self.cwd             = cwd
+        self.name            = name
         self.module          = module
         self.function        = function
-        self.name            = name
         self.args            = args
         self.kwargs          = kwargs or {}
         self.cmd             = cmd or ['/usr/bin/env', 'python3',
                                        '-m', 'jman.mod_func_loader']
+        self.cwd             = cwd
         self.notify_meta     = notify_meta
         self.notify_complete = [x for x in (manager_notify, notify_complete)
                                 if x is not None]
@@ -32,6 +32,11 @@ class Job:
         self.proc            = None
         self.meta            = None
         self.error_log       = None
+
+    @staticmethod
+    def from_mod_func(module, function, name=None, **kwargs):
+        assert 'cmd' not in kwargs
+        return Job(name, module=module, function=function, **kwargs)
 
     def spawn(self, *args, **kwargs):
         self.status = Job.STATUS_RUNNING

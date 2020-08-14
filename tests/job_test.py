@@ -20,7 +20,8 @@ def notify_complete(j):
 
 
 if __name__ == '__main__':
-    j = Job('tests.job_test', 'task', 'TEST-TASK', args=(10,),
-            notify_meta=notify_meta, notify_complete=notify_complete)
+    j = Job.from_mod_func('tests.job_test', 'task', 'TEST-TASK', args=(10,),
+                          notify_meta=notify_meta,
+                          notify_complete=notify_complete)
     j.spawn()
     j.join()

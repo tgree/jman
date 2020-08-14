@@ -21,14 +21,18 @@ def notify_complete(j):
 
 if __name__ == '__main__':
     m = Manager()
-    jobs = [m.spawn('tests.manager_test', 'task', 'TASK-0', args=(10,),
-                    notify_meta=notify_meta, notify_complete=notify_complete),
-            m.spawn('tests.manager_test', 'task', 'TASK-1', args=(3,),
-                    notify_meta=notify_meta, notify_complete=notify_complete),
-            m.spawn('tests.manager_test', 'task', 'TASK-2', args=(8,),
-                    notify_meta=notify_meta, notify_complete=notify_complete),
-            m.spawn('tests.manager_test', 'task', 'TASK-3', args=(5,),
-                    notify_meta=notify_meta, notify_complete=notify_complete),
+    jobs = [m.spawn_mod_func('tests.manager_test', 'task', 'TASK-0', args=(10,),
+                             notify_meta=notify_meta,
+                             notify_complete=notify_complete),
+            m.spawn_mod_func('tests.manager_test', 'task', 'TASK-1', args=(3,),
+                             notify_meta=notify_meta,
+                             notify_complete=notify_complete),
+            m.spawn_mod_func('tests.manager_test', 'task', 'TASK-2', args=(8,),
+                             notify_meta=notify_meta,
+                             notify_complete=notify_complete),
+            m.spawn_mod_func('tests.manager_test', 'task', 'TASK-3', args=(5,),
+                             notify_meta=notify_meta,
+                             notify_complete=notify_complete),
             ]
     m.join_all()
     for j in jobs:
