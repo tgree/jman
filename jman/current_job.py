@@ -28,10 +28,10 @@ class CurrentJob:
         self.wf.flush()
 
 
-def main(args):
+def main(module, function, rfd, wfd, cwd):
     # Manage file descriptors.
-    rf = os.fdopen(args.rfd, 'r')
-    wf = os.fdopen(args.wfd, 'w')
+    rf = os.fdopen(rfd, 'r')
+    wf = os.fdopen(wfd, 'w')
 
     # Receive our json command from the master.
     j = rf.readline()
@@ -42,10 +42,10 @@ def main(args):
     jman.current_job = CurrentJob(j['uuid'], wf)
 
     # Import that target module and execute the target function.
-    if args.cwd:
-        sys.path.insert(0, args.cwd)
-    m = importlib.import_module(args.module)
-    f = getattr(m, args.function)
+    if cwd:
+        sys.path.insert(0, cwd)
+    m = importlib.import_module(module)
+    f = getattr(m, function)
     try:
         f(*j['args'], **j['kwargs'])
     except Exception:
@@ -54,16 +54,14 @@ def main(args):
 
 
 def _main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--module', '-m', required=True)
-    parser.add_argument('--function', '-f', required=True)
-    parser.add_argument('--rfd', '-r', type=int, required=True)
-    parser.add_argument('--wfd', '-w', type=int, required=True)
-    parser.add_argument('--cwd', '-c')
-    args = parser.parse_args()
+    module   = os.environ['JMAN_MODULE']
+    function = os.environ['JMAN_FUNCTION']
+    rfd      = int(os.environ['JMAN_RFD'])
+    wfd      = int(os.environ['JMAN_WFD'])
+    cwd      = os.environ.get('JMAN_CWD')
 
     try:
-        main(args)
+        main(module, function, rfd, wfd, cwd)
     except KeyboardInterrupt:
         sys.exit(1)
 

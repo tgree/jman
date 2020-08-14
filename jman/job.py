@@ -49,20 +49,21 @@ class Job:
         return '???'
 
     def _workloop(self, verbose=False):
-        rfd, child_wfd = os.pipe()
-        child_rfd, wfd = os.pipe()
-        rfd            = os.fdopen(rfd, 'r')
-        wfd            = os.fdopen(wfd, 'w')
+        rfd, child_wfd       = os.pipe()
+        child_rfd, wfd       = os.pipe()
+        rfd                  = os.fdopen(rfd, 'r')
+        wfd                  = os.fdopen(wfd, 'w')
+        env                  = os.environ.copy()
+        env['JMAN_MODULE']   = self.module
+        env['JMAN_FUNCTION'] = self.function
+        env['JMAN_RFD']      = str(child_rfd)
+        env['JMAN_WFD']      = str(child_wfd)
+        if self.cwd:
+            env['JMAN_CWD'] = self.cwd
         cmd = ['/usr/bin/env', 'python3', '-u',
                '-m', 'jman.current_job',
-               '-m', self.module,
-               '-f', self.function,
-               '-r', '%u' % child_rfd,
-               '-w', '%u' % child_wfd,
                ]
-        if self.cwd:
-            cmd += ['-c', self.cwd]
-        self.proc = reap.Popen(cmd, pass_fds=(child_rfd, child_wfd))
+        self.proc = reap.Popen(cmd, pass_fds=(child_rfd, child_wfd), env=env)
         os.close(child_rfd)
         os.close(child_wfd)
 
