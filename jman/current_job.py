@@ -1,18 +1,17 @@
 # Copyright (c) 2020 by Terry Greeniaus.
-import importlib
-import traceback
-import argparse
 import json
 import uuid
-import sys
 import os
 
-import jman
+
+CURRENT_JOB = None
 
 
 class CurrentJob:
-    def __init__(self, u, wf):
-        self.uuid      = uuid.UUID(u)
+    def __init__(self, j, wf):
+        self.uuid      = uuid.UUID(j['uuid'])
+        self.args      = j['args']
+        self.kwargs    = j['kwargs']
         self.wf        = wf
         self.meta      = None
         self.error_log = None
@@ -28,7 +27,7 @@ class CurrentJob:
         self.wf.flush()
 
 
-def main(module, function, rfd, wfd, cwd):
+def _load_current_job(rfd, wfd):
     # Manage file descriptors.
     rf = os.fdopen(rfd, 'r')
     wf = os.fdopen(wfd, 'w')
@@ -38,33 +37,18 @@ def main(module, function, rfd, wfd, cwd):
     j = json.loads(j)
     rf.close()
 
-    # Populate the current_job global.
-    jman.current_job = CurrentJob(j['uuid'], wf)
-
-    # Import that target module and execute the target function.
-    if cwd:
-        sys.path.insert(0, cwd)
-    m = importlib.import_module(module)
-    f = getattr(m, function)
-    try:
-        f(*j['args'], **j['kwargs'])
-    except Exception:
-        jman.current_job.set_error_log(traceback.format_exc())
-        raise
+    # Return a CurrentJob object.
+    return CurrentJob(j, wf)
 
 
-def _main():
-    module   = os.environ['JMAN_MODULE']
-    function = os.environ['JMAN_FUNCTION']
-    rfd      = int(os.environ['JMAN_RFD'])
-    wfd      = int(os.environ['JMAN_WFD'])
-    cwd      = os.environ.get('JMAN_CWD')
-
-    try:
-        main(module, function, rfd, wfd, cwd)
-    except KeyboardInterrupt:
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    _main()
+def get_current_job():
+    global CURRENT_JOB
+    if CURRENT_JOB is not None:
+        return CURRENT_JOB
+    if 'JMAN_RFD' not in os.environ:
+        return None
+    if 'JMAN_WFD' not in os.environ:
+        return None
+    CURRENT_JOB = _load_current_job(int(os.environ['JMAN_RFD']),
+                                    int(os.environ['JMAN_WFD']))
+    return CURRENT_JOB
