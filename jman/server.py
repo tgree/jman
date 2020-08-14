@@ -71,7 +71,7 @@ class Server:
 
         return self._join(j)
 
-    def spawn(self, cmd):
+    def spawn_mod_func(self, cmd):
         module   = cmd['module']
         function = cmd['function']
         name     = cmd['name']
@@ -102,8 +102,8 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_PUT(self):
-        if self.path == '/spawn':
-            self._do_PUT_spawn()
+        if self.path == '/spawn_mod_func':
+            self._do_PUT_spawn_mod_func()
         else:
             self.send_error(404)
 
@@ -138,10 +138,10 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
         hex_str = self.path[14:]
         self._send_json(200, self.job_server.join_by_uuid(hex_str))
 
-    def _do_PUT_spawn(self):
+    def _do_PUT_spawn_mod_func(self):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
-        self._send_json(200, self.job_server.spawn(cmd))
+        self._send_json(200, self.job_server.spawn_mod_func(cmd))
 
 
 def serve_forever(bind_addr, max_running):

@@ -44,7 +44,8 @@ class Client:
     def join_by_uuid(self, u):
         return self._get('/join_by_uuid/' + u).json()
 
-    def spawn(self, module, function, name, args=(), kwargs=None, cwd=None):
+    def spawn_mod_func(self, module, function, name, args=(), kwargs=None,
+                       cwd=None):
         cmd = {'module'   : module,
                'function' : function,
                'name'     : name,
@@ -52,4 +53,4 @@ class Client:
                'kwargs'   : kwargs or {},
                'cwd'      : cwd,
                }
-        return self._put('/spawn', cmd)
+        return self._put('/spawn_mod_func', cmd)
