@@ -6,7 +6,12 @@ import sys
 from jman import current_job
 
 
+def handle_istate_cb(j):
+    print('istate changed: %s' % j.istate)
+
+
 def main(n):
+    current_job.register_istate_cb(handle_istate_cb)
     if current_job.client:
         print(current_job.client.get_jobs())
     for i in range(n):
