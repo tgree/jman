@@ -38,6 +38,12 @@ class Client:
     def get_job_by_uuid(self, u):
         return self._get('/job_by_uuid/' + u).json()
 
+    def set_job_istate_by_name(self, name, istate):
+        return self._put('/set_istate_by_name/' + name, istate)
+
+    def set_job_istate_by_uuid(self, u, istate):
+        return self._put('/set_istate_by_uuid/' + u, istate)
+
     def join_by_name(self, name):
         return self._get('/join_by_name/' + name).json()
 
