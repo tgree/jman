@@ -45,10 +45,9 @@ class Job:
         assert 'cwd' not in kwargs
         return Job(name, cmd=cmd, **kwargs)
 
-    def spawn(self, *args, **kwargs):
+    def spawn(self):
         self.status = Job.STATUS_RUNNING
-        self.thread = threading.Thread(target=self._workloop, daemon=True,
-                                       args=args, kwargs=kwargs)
+        self.thread = threading.Thread(target=self._workloop, daemon=True)
         self.thread.start()
 
     def join(self, timeout=None):
@@ -63,7 +62,7 @@ class Job:
             return 'COMPLETE'
         return '???'
 
-    def _workloop(self, verbose=False):
+    def _workloop(self):
         rfd, child_wfd       = os.pipe()
         child_rfd, wfd       = os.pipe()
         rfd                  = os.fdopen(rfd, 'r')
@@ -99,17 +98,10 @@ class Job:
                 self.meta = json.loads(data)
                 if self.notify_meta:
                     self.notify_meta(self)
-                if verbose:
-                    print('Got META: %s' % self.meta)
             elif cmd == 'ERROR_LOG':
                 self.error_log = json.loads(data)
-                if verbose:
-                    print('Got ERROR_LOG: %s' % self.error_log)
 
         self.proc.communicate()
-        if verbose:
-            print('Job %s completed with return code %s.' %
-                  (self.uuid, self.proc.returncode))
         self.status = Job.STATUS_COMPLETE
         for f in self.notify_complete:
             f(self)
