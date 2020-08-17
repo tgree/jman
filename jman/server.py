@@ -41,6 +41,7 @@ class Server(ThreadingHTTPServer):
         rsp = {'uuid'      : j.uuid.hex,
                'status'    : j.get_status_str(),
                'meta'      : j.meta,
+               'istate'    : j.istate,
                'error_log' : j.error_log,
                'exit_code' : rc
                }
@@ -61,6 +62,24 @@ class Server(ThreadingHTTPServer):
         except KeyError:
             return None
 
+        return self._job_to_json(j)
+
+    def set_job_istate_by_name(self, name, istate):
+        try:
+            j = self.job_manager.get_job_by_name(name)
+        except KeyError:
+            return None
+
+        j.set_istate(istate)
+        return self._job_to_json(j)
+
+    def set_job_istate_by_uuid(self, hex_str, istate):
+        try:
+            j = self.job_manager[uuid.UUID(hex_str)]
+        except KeyError:
+            return None
+
+        j.set_istate(istate)
         return self._job_to_json(j)
 
     def _join(self, j, timeout=60):
@@ -125,6 +144,10 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
             self._do_PUT_spawn_mod_func()
         elif self.path == '/spawn_cmd':
             self._do_PUT_spawn_cmd()
+        elif self.path.startswith('/set_istate_by_name/'):
+            self._do_PUT_set_istate_by_name()
+        elif self.path.startswith('/set_istate_by_uuid/'):
+            self._do_PUT_set_istate_by_uuid()
         else:
             self.send_error(404)
 
@@ -168,3 +191,16 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
         self._send_json(200, self.server.spawn_cmd(cmd))
+
+    def _do_PUT_set_istate_by_name(self):
+        name   = self.path[20:]
+        length = int(self.headers['Content-Length'])
+        istate = json.loads(self.rfile.read(length))
+        self._send_json(200, self.server.set_job_istate_by_name(name, istate))
+
+    def _do_PUT_set_istate_by_uuid(self):
+        hex_str = self.path[20:]
+        length  = int(self.headers['Content-Length'])
+        istate  = json.loads(self.rfile.read(length))
+        self._send_json(200, self.server.set_job_istate_by_name(hex_str,
+                                                                istate))
