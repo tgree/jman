@@ -28,9 +28,12 @@ class Job:
                                 if x is not None]
         self.uuid            = uuid.uuid1()
         self.status          = Job.STATUS_PENDING
+        self.wfd             = None
+        self.wfd_lock        = threading.Lock()
         self.thread          = None
         self.proc            = None
         self.meta            = None
+        self.istate          = None
         self.error_log       = None
 
     @staticmethod
@@ -62,6 +65,17 @@ class Job:
             return 'COMPLETE'
         return '???'
 
+    def _write_istate(self):
+        # Assumes wfd_lock is held.
+        if self.wfd is not None:
+            self.wfd.write('INPUT: %s\n' % json.dumps(self.istate))
+            self.wfd.flush()
+
+    def set_istate(self, istate):
+        with self.wfd_lock:
+            self.istate = istate
+            self._write_istate()
+
     def _workloop(self):
         rfd, child_wfd       = os.pipe()
         child_rfd, wfd       = os.pipe()
@@ -76,17 +90,22 @@ class Job:
             env['JMAN_CWD'] = self.cwd
         env['JMAN_RFD']      = str(child_rfd)
         env['JMAN_WFD']      = str(child_wfd)
-        self.proc = reap.Popen(self.cmd, pass_fds=(child_rfd, child_wfd),
-                               env=env)
-        os.close(child_rfd)
-        os.close(child_wfd)
+        with self.wfd_lock:
+            self.wfd  = wfd
+            self.proc = reap.Popen(self.cmd, pass_fds=(child_rfd, child_wfd),
+                                   env=env)
+            os.close(child_rfd)
+            os.close(child_wfd)
 
-        j = json.dumps({'uuid'   : str(self.uuid),
-                        'args'   : self.args,
-                        'kwargs' : self.kwargs,
-                        })
-        wfd.write(j + '\n')
-        wfd.close()
+            j = json.dumps({'uuid'   : str(self.uuid),
+                            'args'   : self.args,
+                            'kwargs' : self.kwargs,
+                            })
+            wfd.write(j + '\n')
+            wfd.flush()
+
+            if self.istate is not None:
+                self._write_istate()
 
         while True:
             l = rfd.readline()
