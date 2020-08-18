@@ -45,7 +45,6 @@ class Job:
     def from_cmd(cmd, name=None, **kwargs):
         assert 'module' not in kwargs
         assert 'function' not in kwargs
-        assert 'cwd' not in kwargs
         return Job(name, cmd=cmd, **kwargs)
 
     def spawn(self):
@@ -93,7 +92,7 @@ class Job:
         with self.wfd_lock:
             self.wfd  = wfd
             self.proc = reap.Popen(self.cmd, pass_fds=(child_rfd, child_wfd),
-                                   env=env)
+                                   env=env, cwd=self.cwd)
             os.close(child_rfd)
             os.close(child_wfd)
 

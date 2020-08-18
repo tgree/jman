@@ -120,7 +120,9 @@ class Server(ThreadingHTTPServer):
         name   = cmd['name']
         args   = tuple(cmd['args'])
         kwargs = tuple(cmd['kwargs'])
-        j      = self.job_manager.spawn_cmd(cli, name, args=args, kwargs=kwargs)
+        cwd    = cmd.get('cwd')
+        j      = self.job_manager.spawn_cmd(cli, name, args=args, kwargs=kwargs,
+                                            cwd=cwd)
         return self._job_to_json(j)
 
 
