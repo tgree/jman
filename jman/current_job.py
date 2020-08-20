@@ -1,72 +1,83 @@
 # Copyright (c) 2020 by Terry Greeniaus.
-import importlib
-import traceback
-import argparse
+import threading
 import json
 import uuid
-import sys
 import os
 
-import jman
+from .client import Client
 
 
 class CurrentJob:
-    def __init__(self, u, wfd):
-        self.uuid      = uuid.UUID(u)
-        self.wfd       = wfd
-        self.meta      = None
-        self.error_log = None
+    CURRENT_JOB = None
+
+    def __init__(self, j, rf, wf, url):
+        self.uuid        = uuid.UUID(j['uuid'])
+        self.args        = j['args']
+        self.kwargs      = j['kwargs']
+        self.wf          = wf
+        self.rf          = rf
+        self.client      = Client(url) if url else None
+        self.meta        = None
+        self.error_log   = None
+        self.istate      = None
+        self.istate_cb   = None
+        self.istate_lock = threading.Lock()
+        self.thread      = threading.Thread(target=self._workloop, daemon=True)
+        self.thread.start()
 
     def set_meta(self, meta):
         self.meta = meta
-        self.wfd.write('META: %s\n' % json.dumps(meta))
-        self.wfd.flush()
+        self.wf.write('META: %s\n' % json.dumps(meta))
+        self.wf.flush()
 
     def set_error_log(self, log):
         self.error_log = log
-        self.wfd.write('ERROR_LOG: %s\n' % json.dumps(log))
-        self.wfd.flush()
+        self.wf.write('ERROR_LOG: %s\n' % json.dumps(log))
+        self.wf.flush()
+
+    def register_istate_cb(self, cb):
+        with self.istate_lock:
+            self.istate_cb = cb
+            if self.istate is not None:
+                self.istate_cb(self)
+
+    def _workloop(self):
+        while True:
+            l = self.rf.readline()
+            if not l:
+                break
+
+            cmd, _, data = l.partition(':')
+            if cmd == 'INPUT':
+                istate = json.loads(data)
+                with self.istate_lock:
+                    self.istate = istate
+                    if self.istate_cb:
+                        self.istate_cb(self)
 
 
-def main(args):
+def _load_current_job(rfd, wfd, url):
     # Manage file descriptors.
-    rfd = os.fdopen(args.rfd, 'r')
-    wfd = os.fdopen(args.wfd, 'w')
+    rf = os.fdopen(rfd, 'r')
+    wf = os.fdopen(wfd, 'w')
 
     # Receive our json command from the master.
-    j = rfd.readline()
+    j = rf.readline()
     j = json.loads(j)
-    rfd.close()
 
-    # Populate the current_job global.
-    jman.current_job = CurrentJob(j['uuid'], wfd)
-
-    # Import that target module and execute the target function.
-    if args.cwd:
-        sys.path.insert(0, args.cwd)
-    m = importlib.import_module(args.module)
-    f = getattr(m, args.function)
-    try:
-        f(*j['args'], **j['kwargs'])
-    except Exception:
-        jman.current_job.set_error_log(traceback.format_exc())
-        raise
+    # Return a CurrentJob object.
+    return CurrentJob(j, rf, wf, url)
 
 
-def _main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--module', '-m', required=True)
-    parser.add_argument('--function', '-f', required=True)
-    parser.add_argument('--rfd', '-r', type=int, required=True)
-    parser.add_argument('--wfd', '-w', type=int, required=True)
-    parser.add_argument('--cwd', '-c')
-    args = parser.parse_args()
-
-    try:
-        main(args)
-    except KeyboardInterrupt:
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    _main()
+def get_current_job():
+    if CurrentJob.CURRENT_JOB is not None:
+        return CurrentJob.CURRENT_JOB
+    if 'JMAN_RFD' not in os.environ:
+        return None
+    if 'JMAN_WFD' not in os.environ:
+        return None
+    url = os.environ.get('JMAN_SERVER')
+    CurrentJob.CURRENT_JOB = _load_current_job(int(os.environ['JMAN_RFD']),
+                                               int(os.environ['JMAN_WFD']),
+                                               url)
+    return CurrentJob.CURRENT_JOB

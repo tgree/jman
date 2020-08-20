@@ -38,13 +38,20 @@ class Client:
     def get_job_by_uuid(self, u):
         return self._get('/job_by_uuid/' + u).json()
 
+    def set_job_istate_by_name(self, name, istate):
+        return self._put('/set_istate_by_name/' + name, istate)
+
+    def set_job_istate_by_uuid(self, u, istate):
+        return self._put('/set_istate_by_uuid/' + u, istate)
+
     def join_by_name(self, name):
         return self._get('/join_by_name/' + name).json()
 
     def join_by_uuid(self, u):
         return self._get('/join_by_uuid/' + u).json()
 
-    def spawn(self, module, function, name, args=(), kwargs=None, cwd=None):
+    def spawn_mod_func(self, module, function, name, args=(), kwargs=None,
+                       cwd=None):
         cmd = {'module'   : module,
                'function' : function,
                'name'     : name,
@@ -52,4 +59,13 @@ class Client:
                'kwargs'   : kwargs or {},
                'cwd'      : cwd,
                }
-        return self._put('/spawn', cmd)
+        return self._put('/spawn_mod_func', cmd)
+
+    def spawn_cmd(self, cmd, name, args=(), kwargs=None, cwd=None):
+        cmd = {'cmd'    : cmd,
+               'name'   : name,
+               'args'   : args,
+               'kwargs' : kwargs or {},
+               'cwd'      : cwd,
+               }
+        return self._put('/spawn_cmd', cmd)

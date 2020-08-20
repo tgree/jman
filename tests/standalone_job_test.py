@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 import time
-import sys
+import os
 
 from jman import Job, current_job
 
 
-def task(n):
-    for i in range(n):
-        current_job.set_meta({'count' : i})
-        time.sleep(1)
+DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def notify_meta(j):
@@ -20,8 +17,9 @@ def notify_complete(j):
 
 
 if __name__ == '__main__':
-    j = Job.from_mod_func('tests.job_test', 'task', 'TEST-TASK', args=(10,),
-                          notify_meta=notify_meta,
-                          notify_complete=notify_complete)
+    j = Job.from_cmd(['/usr/bin/env', 'python3',
+                      os.path.join(DIR, 'standalone_target.py'),
+                      '-c', '10'], 'TEST-TASK',
+                     notify_meta=notify_meta, notify_complete=notify_complete)
     j.spawn()
     j.join()

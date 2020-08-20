@@ -1,14 +1,27 @@
 # Copyright (c) 2020 by Terry Greeniaus.
 import json
 import uuid
+import os
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 from .manager import Manager
 
 
-class Server:
-    def __init__(self, max_running):
+class Server(ThreadingHTTPServer):
+    def __init__(self, max_running, bind_addr):
+        self.bind_addr            = bind_addr
+        os.environ['JMAN_SERVER'] = 'http://' + bind_addr
+        host, port                = bind_addr.split(':')
+        super(Server, self).__init__((host, int(port)), JManHTTPRequestHandler)
+
         self.job_manager = Manager(max_running=max_running)
+
+    def serve_forever(self, *args,
+                      **kwargs):  # pylint: disable=signature-differs
+        print('Starting Server on %s, max workers = %u' %
+              (self.bind_addr, self.job_manager.max_running))
+
+        super(Server, self).serve_forever(*args, **kwargs)
 
     def get_jobs(self):
         jobs = {}
@@ -28,6 +41,7 @@ class Server:
         rsp = {'uuid'      : j.uuid.hex,
                'status'    : j.get_status_str(),
                'meta'      : j.meta,
+               'istate'    : j.istate,
                'error_log' : j.error_log,
                'exit_code' : rc
                }
@@ -48,6 +62,24 @@ class Server:
         except KeyError:
             return None
 
+        return self._job_to_json(j)
+
+    def set_job_istate_by_name(self, name, istate):
+        try:
+            j = self.job_manager.get_job_by_name(name)
+        except KeyError:
+            return None
+
+        j.set_istate(istate)
+        return self._job_to_json(j)
+
+    def set_job_istate_by_uuid(self, hex_str, istate):
+        try:
+            j = self.job_manager[uuid.UUID(hex_str)]
+        except KeyError:
+            return None
+
+        j.set_istate(istate)
         return self._job_to_json(j)
 
     def _join(self, j, timeout=60):
@@ -71,21 +103,30 @@ class Server:
 
         return self._join(j)
 
-    def spawn(self, cmd):
+    def spawn_mod_func(self, cmd):
         module   = cmd['module']
         function = cmd['function']
         name     = cmd['name']
         args     = tuple(cmd['args'])
         kwargs   = cmd['kwargs']
         cwd      = cmd.get('cwd')
-        j        = self.job_manager.spawn(module, function, name, args=args,
-                                          kwargs=kwargs, cwd=cwd)
+        j        = self.job_manager.spawn_mod_func(module, function, name,
+                                                   args=args, kwargs=kwargs,
+                                                   cwd=cwd)
+        return self._job_to_json(j)
+
+    def spawn_cmd(self, cmd):
+        cli    = cmd['cmd']
+        name   = cmd['name']
+        args   = tuple(cmd['args'])
+        kwargs = tuple(cmd['kwargs'])
+        cwd    = cmd.get('cwd')
+        j      = self.job_manager.spawn_cmd(cli, name, args=args, kwargs=kwargs,
+                                            cwd=cwd)
         return self._job_to_json(j)
 
 
 class JManHTTPRequestHandler(BaseHTTPRequestHandler):
-    job_server = None
-
     def do_GET(self):
         if self.path == '/jobs':
             self._do_GET_jobs()
@@ -101,8 +142,14 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_PUT(self):
-        if self.path == '/spawn':
-            self._do_PUT_spawn()
+        if self.path == '/spawn_mod_func':
+            self._do_PUT_spawn_mod_func()
+        elif self.path == '/spawn_cmd':
+            self._do_PUT_spawn_cmd()
+        elif self.path.startswith('/set_istate_by_name/'):
+            self._do_PUT_set_istate_by_name()
+        elif self.path.startswith('/set_istate_by_uuid/'):
+            self._do_PUT_set_istate_by_uuid()
         else:
             self.send_error(404)
 
@@ -119,35 +166,43 @@ class JManHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(content.encode())
 
     def _do_GET_jobs(self):
-        self._send_json(200, self.job_server.get_jobs())
+        self._send_json(200, self.server.get_jobs())
 
     def _do_GET_job_by_name(self):
         name = self.path[13:]
-        self._send_json(200, self.job_server.get_job_by_name(name))
+        self._send_json(200, self.server.get_job_by_name(name))
 
     def _do_GET_job_by_uuid(self):
         hex_str = self.path[13:]
-        self._send_json(200, self.job_server.get_job_by_uuid(hex_str))
+        self._send_json(200, self.server.get_job_by_uuid(hex_str))
 
     def _do_GET_join_by_name(self):
         name = self.path[14:]
-        self._send_json(200, self.job_server.join_by_name(name))
+        self._send_json(200, self.server.join_by_name(name))
 
     def _do_GET_join_by_uuid(self):
         hex_str = self.path[14:]
-        self._send_json(200, self.job_server.join_by_uuid(hex_str))
+        self._send_json(200, self.server.join_by_uuid(hex_str))
 
-    def _do_PUT_spawn(self):
+    def _do_PUT_spawn_mod_func(self):
         length = int(self.headers['Content-Length'])
         cmd    = json.loads(self.rfile.read(length))
-        self._send_json(200, self.job_server.spawn(cmd))
+        self._send_json(200, self.server.spawn_mod_func(cmd))
 
+    def _do_PUT_spawn_cmd(self):
+        length = int(self.headers['Content-Length'])
+        cmd    = json.loads(self.rfile.read(length))
+        self._send_json(200, self.server.spawn_cmd(cmd))
 
-def serve_forever(bind_addr, max_running):
-    JManHTTPRequestHandler.job_server = Server(max_running)
+    def _do_PUT_set_istate_by_name(self):
+        name   = self.path[20:]
+        length = int(self.headers['Content-Length'])
+        istate = json.loads(self.rfile.read(length))
+        self._send_json(200, self.server.set_job_istate_by_name(name, istate))
 
-    host, port = bind_addr.split(':')
-    bind_addr  = (host, int(port))
-    httpd      = ThreadingHTTPServer(bind_addr, JManHTTPRequestHandler)
-    print('Starting server on %s, max workers = %u' % (bind_addr, max_running))
-    httpd.serve_forever()
+    def _do_PUT_set_istate_by_uuid(self):
+        hex_str = self.path[20:]
+        length  = int(self.headers['Content-Length'])
+        istate  = json.loads(self.rfile.read(length))
+        self._send_json(200, self.server.set_job_istate_by_name(hex_str,
+                                                                istate))

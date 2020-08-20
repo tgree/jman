@@ -12,7 +12,7 @@ def _main():
     args = parser.parse_args()
 
     try:
-        jman.serve_forever(args.bind_addr, args.max_running)
+        jman.Server(args.max_running, args.bind_addr).serve_forever()
     except KeyboardInterrupt:
         print()
         sys.exit(1)

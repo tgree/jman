@@ -19,9 +19,9 @@ class Manager:
     def get_job_by_name(self, name):
         return self.jobs_by_name[name]
 
-    def spawn(self, *args, **kwargs):
+    def _spawn(self, factory, *args, **kwargs):
         with self.jobs_lock:
-            j = Job(*args, manager_notify=self.notify_complete, **kwargs)
+            j = factory(*args, manager_notify=self.notify_complete, **kwargs)
             if j.name in self.jobs_by_name:
                 raise Exception('Duplicate name: %s' % j.name)
             self.jobs[j.uuid] = j
@@ -33,6 +33,12 @@ class Manager:
             else:
                 self.pending_jobs.append(j)
             return j
+
+    def spawn_mod_func(self, *args, **kwargs):
+        return self._spawn(Job.from_mod_func, *args, **kwargs)
+
+    def spawn_cmd(self, *args, **kwargs):
+        return self._spawn(Job.from_cmd, *args, **kwargs)
 
     def notify_complete(self, j):
         with self.jobs_lock:
