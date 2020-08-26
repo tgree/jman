@@ -2,12 +2,16 @@
 import json
 import uuid
 import os
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+
+from socketserver import ThreadingMixIn
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from .manager import Manager
 
 
-class Server(ThreadingHTTPServer):
+class Server(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
     def __init__(self, max_running, bind_addr):
         self.bind_addr            = bind_addr
         os.environ['JMAN_SERVER'] = 'http://' + bind_addr
