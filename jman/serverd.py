@@ -7,7 +7,7 @@ import jman
 
 def _main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bind-addr', '-b', default='0:5003')
+    parser.add_argument('--bind-addr', '-b', default='127.0.0.1:5003')
     parser.add_argument('--max-running', '-m', default=5)
     args = parser.parse_args()
 
