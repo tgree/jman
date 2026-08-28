@@ -1,6 +1,6 @@
 # Copyright (c) 2025 by Terry Greeniaus.  All rights reserved.
 MODULE      := jman
-MODULE_VERS := 0.1.2
+MODULE_VERS := 0.1.3
 MODULES := \
 	setup.cfg \
 	setup.py \
