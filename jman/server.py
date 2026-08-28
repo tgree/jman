@@ -1,4 +1,4 @@
-# Copyright (c) 2020 by Terry Greeniaus.
+# Copyright (c) 2020-2023 by Terry Greeniaus.
 import json
 import uuid
 import os
@@ -16,7 +16,7 @@ class Server(ThreadingMixIn, HTTPServer):
         self.bind_addr            = bind_addr
         os.environ['JMAN_SERVER'] = 'http://' + bind_addr
         host, port                = bind_addr.split(':')
-        super(Server, self).__init__((host, int(port)), JManHTTPRequestHandler)
+        super().__init__((host, int(port)), JManHTTPRequestHandler)
 
         self.job_manager = Manager(max_running=max_running)
 
@@ -25,7 +25,7 @@ class Server(ThreadingMixIn, HTTPServer):
         print('Starting Server on %s, max workers = %u' %
               (self.bind_addr, self.job_manager.max_running))
 
-        super(Server, self).serve_forever(*args, **kwargs)
+        super().serve_forever(*args, **kwargs)
 
     def get_jobs(self):
         jobs = {}
