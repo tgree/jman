@@ -1,9 +1,10 @@
 [MESSAGES CONTROL]
-disable=bad-whitespace,
-        missing-module-docstring,
+disable=missing-module-docstring,
         invalid-name,
         missing-function-docstring,
         too-many-arguments,
         missing-class-docstring,
         too-few-public-methods,
-        too-many-instance-attributes
+        too-many-instance-attributes,
+        too-many-positional-arguments,
+        consider-using-f-string

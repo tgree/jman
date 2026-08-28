@@ -1,7 +1,8 @@
-# Copyright (c) 2020 by Terry Greeniaus.
+# Copyright (c) 2020-2026 by Terry Greeniaus.
 import threading
 
 from .job import Job
+from .exception import JException
 
 
 class Manager:
@@ -23,11 +24,12 @@ class Manager:
         with self.jobs_lock:
             j = factory(*args, manager_notify=self.notify_complete, **kwargs)
             if j.name in self.jobs_by_name:
-                raise Exception('Duplicate name: %s' % j.name)
+                raise JException('Duplicate name: %s' % j.name)
             self.jobs[j.uuid] = j
             if j.name:
                 self.jobs_by_name[j.name] = j
-            if len(self.running_jobs) < self.max_running:
+            if (self.max_running is None or
+                    len(self.running_jobs) < self.max_running):
                 self.running_jobs.add(j)
                 j.spawn()
             else:

@@ -2,6 +2,7 @@
 import threading
 import json
 import uuid
+import sys
 import os
 
 import reap
@@ -20,7 +21,7 @@ class Job:
         self.function        = function
         self.args            = args
         self.kwargs          = kwargs or {}
-        self.cmd             = cmd or ['/usr/bin/env', 'python3',
+        self.cmd             = cmd or [sys.executable,
                                        '-m', 'jman.mod_func_loader']
         self.cwd             = cwd
         self.notify_meta     = notify_meta

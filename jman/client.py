@@ -1,5 +1,7 @@
-# Copyright(c) 2020 by Terry Greeniaus.
+# Copyright (c) 2020-2026 by Terry Greeniaus.
 import requests
+
+from .exception import JException
 
 
 class Client:
@@ -16,18 +18,18 @@ class Client:
         if r.status_code == 200:
             return r
 
-        raise Exception('Unexpected response: %s' % r.content)
+        raise JException('Unexpected response: %s' % r.content)
 
     def _put(self, path, j):
         r = self.session.put(self.base_url + path, json=j, timeout=self.timeout)
         if r.status_code == 409:
-            raise Exception('Entity exists: %s %s' % (path, j))
+            raise JException('Entity exists: %s %s' % (path, j))
         if r.status_code == 200:
             return r.json()
         if r.status_code == 204:
             return None
 
-        raise Exception('Unexpected response: %s' % r.content)
+        raise JException('Unexpected response: %s' % r.content)
 
     def get_jobs(self):
         return self._get('/jobs').json()
