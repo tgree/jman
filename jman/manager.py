@@ -27,7 +27,8 @@ class Manager:
             self.jobs[j.uuid] = j
             if j.name:
                 self.jobs_by_name[j.name] = j
-            if len(self.running_jobs) < self.max_running:
+            if (self.max_running is None or
+                    len(self.running_jobs) < self.max_running):
                 self.running_jobs.add(j)
                 j.spawn()
             else:
